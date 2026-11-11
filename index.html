@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#100b18">
+<title>Тебе письмо</title>
+<style>
+@font-face {
+  font-family: "SF Pro Expanded";
+  src: url("./SF-Pro-Expanded-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --bg: #100b18;
+  --pink: #ff6c9e;
+  --pink-light: #ffd5e5;
+  --violet: #a88aff;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  min-height: 100svh;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: #fff5fb;
+  font-family: "SF Pro Expanded", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+body::before, body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  inset: -20%;
+  z-index: 0;
+}
+body::before {
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255, 71, 143, .19), transparent 28%),
+    radial-gradient(ellipse at 20% 15%, rgba(131, 82, 255, .16), transparent 32%),
+    radial-gradient(ellipse at 85% 78%, rgba(255, 112, 159, .12), transparent 30%);
+  filter: blur(30px);
+  animation: ambience 12s ease-in-out infinite alternate;
+  transition: opacity 1.4s ease, filter 1.4s ease;
+}
+body.opened-page::before {
+  opacity: 1;
+  filter: blur(42px) saturate(1.65);
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(255, 30, 126, .58), transparent 34%),
+    radial-gradient(ellipse at 18% 22%, rgba(102, 48, 255, .48), transparent 38%),
+    radial-gradient(ellipse at 84% 76%, rgba(0, 225, 255, .28), transparent 35%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 54, 197, .28), transparent 45%);
+  animation: neonDrift 8s ease-in-out infinite alternate;
+}
+body::after {
+  inset: 0;
+  opacity: .12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E");
+  mix-blend-mode: screen;
+}
+.stage {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  width: 100%;
+  padding: max(24px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+.eyebrow {
+  margin: 0 0 18px;
+  font-size: clamp(11px, 2.8vw, 13px);
+  font-weight: 400;
+  letter-spacing: .32em;
+  text-transform: uppercase;
+  color: rgba(255, 222, 238, .78);
+  transition: opacity .5s ease, transform .7s var(--ease);
+}
+.hint {
+  margin: 20px 0 0;
+  color: rgba(255, 223, 238, .55);
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  animation: hintPulse 2.4s ease-in-out infinite;
+  transition: opacity .45s ease, transform .65s var(--ease);
+}
+.scene {
+  position: relative;
+  width: min(84vw, 390px);
+  height: min(103vw, 470px);
+  min-height: 330px;
+  max-height: 470px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  perspective: 1100px;
+}
+.halo {
+  position: absolute;
+  width: 88%;
+  aspect-ratio: 1;
+  top: 14%;
+  left: 6%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 81, 147, .24), rgba(172, 95, 255, .08) 42%, transparent 70%);
+  filter: blur(18px);
+  opacity: .75;
+  transition: opacity .8s ease;
+}
+.envelope {
+  position: absolute;
+  z-index: 5;
+  width: min(78vw, 310px);
+  aspect-ratio: 1.48;
+  top: 39%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  filter: drop-shadow(0 26px 38px rgba(0,0,0,.4));
+  transition: transform 1.05s var(--ease) .35s, opacity .7s ease .65s, filter .5s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.envelope:focus-visible { outline: 2px solid var(--pink-light); outline-offset: 10px; border-radius: 12px; }
+.env-back, .env-front, .env-flap, .env-fold { position: absolute; inset: 0; border-radius: 9px; }
+.env-back {
+  background: linear-gradient(145deg, #e8bdce, #9c587d 95%);
+  box-shadow: inset 0 1px rgba(255,255,255,.65);
+}
+.letter {
+  position: absolute;
+  left: 8%; top: 7%; width: 84%; height: 82%;
+  border-radius: 6px;
+  background: linear-gradient(150deg, #fff7fb, #f5cfe0);
+  box-shadow: 0 4px 16px rgba(41, 9, 35, .2);
+  transform: translateY(0);
+  transition: transform 1s var(--ease) .15s;
+}
+.letter::before, .letter::after {
+  content: ""; position: absolute; left: 18%; right: 18%; height: 2px;
+  border-radius: 4px; background: rgba(176, 89, 130, .18);
+}
+.letter::before { top: 35%; }
+.letter::after { top: 46%; left: 28%; right: 28%; }
+.env-front {
+  z-index: 2;
+  background: linear-gradient(135deg, #fce5ee 0%, #e9b8cf 100%);
+  clip-path: polygon(0 0, 50% 57%, 100% 0, 100% 100%, 0 100%);
+}
+.env-fold {
+  z-index: 3;
+  background: linear-gradient(145deg, #f7dbe8, #d99ab8);
+  clip-path: polygon(0 100%, 50% 48%, 100% 100%);
+}
+.env-flap {
+  z-index: 4;
+  height: 58%;
+  transform-origin: 50% 0;
+  background: linear-gradient(160deg, #fff0f5, #dba5bd);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  backface-visibility: hidden;
+  transition: transform .82s var(--ease) .08s, filter .5s ease;
+}
+.seal {
+  position: absolute;
+  z-index: 6;
+  left: 50%; top: 54%;
+  width: 20%; aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 32% 25%, #ffb0cd, #f34883 47%, #a51d59);
+  box-shadow: 0 6px 17px rgba(103, 9, 53, .35), inset 0 2px 4px rgba(255,255,255,.55), inset 0 -5px 8px rgba(95, 0, 39, .25);
+  transition: opacity .3s ease, transform .5s var(--ease);
+}
+.seal svg { width: 48%; fill: #fff0f7; filter: drop-shadow(0 1px 1px rgba(100,0,35,.3)); }
+.envelope:hover { filter: drop-shadow(0 30px 44px rgba(255, 55, 135, .18)); }
+.envelope:hover .seal { transform: translate(-50%, -50%) scale(1.07); }
+.opened .eyebrow, .opened .hint { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+.opened .envelope { transform: translate(-50%, 75%) scale(.82) rotate(-5deg); opacity: 0; pointer-events: none; }
+.opened .env-flap { transform: rotateX(180deg); filter: brightness(.72); }
+.opened .letter { transform: translateY(-28%); }
+.opened .seal { opacity: 0; transform: translate(-50%, -50%) scale(.25) rotate(25deg); }
+.opened .halo { animation: haloBloom 2.2s var(--ease) .2s both; }
+
+/* Сердце — отдельная сцена, появляется первой. */
+.art {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.heart-scene {
+  position: absolute;
+  width: 42%;
+  left: 29%;
+  top: 17%;
+  opacity: 0;
+  transform: translateY(22px) scale(.72) rotate(-8deg);
+  transform-origin: center;
+  filter: drop-shadow(0 0 16px rgba(255, 74, 139, .22));
+}
+.heart-svg { display: block; width: 100%; overflow: visible; }
+.heart-fill { opacity: 0; }
+.heart-outline {
+  fill: none;
+  stroke: rgba(255, 224, 238, .95);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.opened .heart-scene {
+  animation: heartArrive 1s var(--ease) .55s forwards, heartFloat 4s ease-in-out 2.1s infinite;
+}
+.opened .heart-outline { animation: traceHeart .95s ease .68s forwards; }
+.opened .heart-fill { animation: fillHeart .65s ease 1.3s forwards; }
+
+/* Цветы начинаются только после завершения появления сердца + пауза около секунды. */
+.bouquet {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(28px) scale(.82);
+  transform-origin: 50% 38%;
+}
+.flower {
+  position: absolute;
+  width: var(--size);
+  left: var(--x); top: var(--y);
+  transform: translate(-50%, -50%) scale(.1) rotate(var(--rot));
+  opacity: 0;
+  filter: drop-shadow(0 5px 7px rgba(0,0,0,.16));
+  transform-origin: center;
+}
+.flower svg { display: block; width: 100%; overflow: visible; }
+.flower .petal-a { fill: var(--c1); }
+.flower .petal-b { fill: var(--c2); }
+.flower .center { fill: #ffd99b; stroke: rgba(255,255,255,.55); stroke-width: 1; }
+.flower .sparkle { fill: rgba(255,255,255,.75); }
+.opened .bouquet {
+  animation: bouquetArrive 1.25s var(--ease) 2.55s forwards;
+}
+.opened .flower {
+  animation: flowerBloom 1.05s var(--ease) calc(2.72s + var(--delay)) forwards;
+}
+.stem-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+.stem-line {
+  fill: none; stroke: #8fc7a5; stroke-width: 2.1; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+.opened .stem-line { animation: drawStem 1.05s ease 2.75s forwards; }
+.leaf-shape { fill: #6fae8b; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.opened .leaf-shape { animation: leafBloom .65s var(--ease) 3.25s forwards; }
+
+/* Акриловая надпись — единственный текст, остающийся после открытия. */
+.love {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 78%;
+  width: min(94vw, 520px);
+  margin: 0;
+  text-align: center;
+  font-size: clamp(23px, 6.8vw, 36px);
+  line-height: 1.35;
+  font-weight: 400;
+  letter-spacing: -.065em;
+  color: rgba(255, 245, 251, .94);
+  opacity: 0;
+  transform: translate(-50%, 20px) scale(.97);
+  white-space: nowrap;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgba(255,255,255,.8), #ffe0ef 30%, #fff 52%, #f3b6d4 72%, rgba(255,255,255,.88));
+  background-size: 220% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(255, 91, 157, .42)) drop-shadow(0 0 28px rgba(171, 91, 255, .24));
+}
+/* У надписи нет подложки — только светящиеся буквы. */
+.love::after { display: none; }
+.opened .love {
+  animation: textGlass 1.25s var(--ease) 3.35s forwards, textShimmer 5s ease-in-out 4.7s infinite;
+}
+.particle-layer { position: fixed; inset: 0; z-index: 20; pointer-events: none; overflow: hidden; }
+.particle {
+  position: absolute;
+  width: var(--s); height: var(--s);
+  left: var(--x); top: var(--y);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffd5e8 28%, rgba(255,105,165,0) 72%);
+  box-shadow: 0 0 13px rgba(255, 114, 174, .75);
+  opacity: 0;
+  animation: particleRise var(--dur) ease-out var(--delay) forwards;
+}
+@keyframes ambience { to { transform: translate3d(2%, -2%, 0) scale(1.08); } }
+@keyframes neonDrift {
+  0% { transform: translate3d(-2%, 1%, 0) scale(1); background-position: 0% 50%; }
+  50% { transform: translate3d(2%, -2%, 0) scale(1.1); }
+  100% { transform: translate3d(-1%, 2%, 0) scale(1.04); }
+}
+@keyframes hintPulse { 0%,100% { opacity:.45 } 50% { opacity:.9 } }
+@keyframes haloBloom { 0% { opacity:.35; transform:scale(.65) } 50% { opacity:1 } 100% { opacity:.85; transform:scale(1.12) } }
+@keyframes heartArrive {
+  0% { opacity:0; transform:translateY(22px) scale(.72) rotate(-8deg); }
+  65% { opacity:1; transform:translateY(-3px) scale(1.07) rotate(2deg); }
+  100% { opacity:1; transform:translateY(0) scale(1) rotate(0); }
+}
+@keyframes traceHeart { to { stroke-dashoffset:0; } }
+@keyframes fillHeart { from { opacity:0; transform:scale(.85); } to { opacity:1; transform:scale(1); } }
+@keyframes heartFloat { 0%,100% { translate:0 0; } 50% { translate:0 -7px; } }
+@keyframes bouquetArrive { from { opacity:0; transform:translateY(28px) scale(.82); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes flowerBloom {
+  0% { opacity:0; transform:translate(-50%,-50%) scale(.1) rotate(calc(var(--rot) - 28deg)); }
+  70% { opacity:1; transform:translate(-50%,-50%) scale(1.12) rotate(calc(var(--rot) + 4deg)); }
+  100% { opacity:1; transform:translate(-50%,-50%) scale(1) rotate(var(--rot)); }
+}
+@keyframes drawStem { to { stroke-dashoffset:0; } }
+@keyframes leafBloom { from { opacity:0; scale:.2; } to { opacity:1; scale:1; } }
+@keyframes textGlass {
+  0% { opacity:0; transform:translate(-50%, 20px) scale(.97); filter:blur(9px) drop-shadow(0 0 0 rgba(255,91,157,0)); }
+  70% { opacity:1; filter:blur(0) drop-shadow(0 0 22px rgba(255,91,157,.25)); }
+  100% { opacity:1; transform:translate(-50%, 0) scale(1); filter:blur(0) drop-shadow(0 0 18px rgba(255,91,157,.18)); }
+}
+@keyframes glassPlate { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+@keyframes textShimmer {
+  0%, 70%, 100% { background-position:100% 50%; }
+  85% { background-position:0% 50%; }
+}
+@keyframes particleRise {
+  0% { opacity:0; transform:translateY(12px) scale(.4); }
+  15% { opacity:.9; }
+  100% { opacity:0; transform:translateY(-100px) scale(1.2); }
+}
+@media (max-width: 380px) {
+  .scene { width: 88vw; height: 105vw; min-height: 315px; }
+  .love { font-size: clamp(20px, 6.2vw, 27px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <p class="eyebrow">Тебе письмо</p>
+  <div class="scene" id="scene">
+    <div class="halo"></div>
+    <div class="envelope" id="envelope" role="button" tabindex="0" aria-label="Открыть письмо">
+      <div class="env-back"></div>
+      <div class="letter"></div>
+      <div class="env-front"></div>
+      <div class="env-fold"></div>
+      <div class="env-flap"></div>
+      <div class="seal" aria-hidden="true">
+        <svg viewBox="0 0 100 90"><path d="M50 82 C20 60 4 42 4 26 C4 12 15 4 27 4 C37 4 46 10 50 19 C54 10 63 4 73 4 C85 4 96 12 96 26 C96 42 80 60 50 82 Z"/></svg>
+      </div>
+    </div>
+
+    <div class="art" aria-hidden="true">
+      <div class="bouquet">
+        <svg class="stem-art" viewBox="0 0 400 470" preserveAspectRatio="none">
+          <path class="stem-line" pathLength="1" d="M200 430 C190 360 115 300 85 205"/>
+          <path class="stem-line" pathLength="1" d="M200 430 C215 350 282 290 315 185"/>
+          <path class="stem-line" pathLength="1" d="M200 430 C180 340 175 260 190 145"/>
+          <path class="stem-line" pathLength="1" d="M200 430 C235 350 245 260 235 135"/>
+          <path class="stem-line" pathLength="1" d="M200 430 C205 330 200 250 205 95"/>
+          <path class="leaf-shape" d="M151 345 C115 327 111 304 114 291 C143 294 159 313 151 345Z"/>
+          <path class="leaf-shape" d="M248 347 C281 325 287 302 282 289 C254 296 240 318 248 347Z"/>
+          <path class="leaf-shape" d="M175 300 C145 278 145 259 151 247 C174 261 185 279 175 300Z"/>
+          <path class="leaf-shape" d="M231 276 C258 255 259 236 253 225 C231 238 220 258 231 276Z"/>
+          <path class="leaf-shape" d="M194 235 C168 216 168 198 175 188 C196 202 204 218 194 235Z"/>
+        </svg>
+        <div class="flower" style="--x:22%;--y:35%;--size:25%;--c1:#ff8db7;--c2:#ffd3e4;--rot:-16deg;--delay:.08s">
+          <svg viewBox="-50 -50 100 100"><g class="petal-a">
+            <ellipse cy="-23" rx="12" ry="22"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(45)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(90)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(135)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(180)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(225)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(270)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(315)"/></g><g class="petal-b"><ellipse cy="-15" rx="8" ry="15" transform="rotate(22)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(67)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(112)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(157)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(202)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(247)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(292)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(337)"/></g><circle class="center" r="8"/><circle class="sparkle" cx="-2" cy="-3" r="2"/></svg>
+        </div>
+        <div class="flower" style="--x:78%;--y:31%;--size:24%;--c1:#bd9cff;--c2:#e5d7ff;--rot:13deg;--delay:.16s">
+          <svg viewBox="-50 -50 100 100"><g class="petal-a">
+            <ellipse cy="-23" rx="12" ry="22"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(45)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(90)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(135)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(180)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(225)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(270)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(315)"/></g><g class="petal-b"><ellipse cy="-15" rx="8" ry="15" transform="rotate(22)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(67)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(112)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(157)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(202)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(247)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(292)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(337)"/></g><circle class="center" r="8"/><circle class="sparkle" cx="-2" cy="-3" r="2"/></svg>
+        </div>
+        <div class="flower" style="--x:35%;--y:22%;--size:21%;--c1:#ffb0c9;--c2:#fff0f5;--rot:-7deg;--delay:.24s">
+          <svg viewBox="-50 -50 100 100"><g class="petal-a">
+            <ellipse cy="-23" rx="12" ry="22"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(45)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(90)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(135)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(180)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(225)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(270)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(315)"/></g><g class="petal-b"><ellipse cy="-15" rx="8" ry="15" transform="rotate(22)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(67)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(112)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(157)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(202)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(247)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(292)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(337)"/></g><circle class="center" r="8"/><circle class="sparkle" cx="-2" cy="-3" r="2"/></svg>
+        </div>
+        <div class="flower" style="--x:65%;--y:20%;--size:20%;--c1:#ff8eb2;--c2:#ffdce9;--rot:11deg;--delay:.32s">
+          <svg viewBox="-50 -50 100 100"><g class="petal-a">
+            <ellipse cy="-23" rx="12" ry="22"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(45)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(90)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(135)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(180)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(225)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(270)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(315)"/></g><g class="petal-b"><ellipse cy="-15" rx="8" ry="15" transform="rotate(22)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(67)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(112)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(157)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(202)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(247)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(292)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(337)"/></g><circle class="center" r="8"/><circle class="sparkle" cx="-2" cy="-3" r="2"/></svg>
+        </div>
+        <div class="flower" style="--x:50%;--y:12%;--size:17%;--c1:#ffc1d8;--c2:#fff0f6;--rot:0deg;--delay:.4s">
+          <svg viewBox="-50 -50 100 100"><g class="petal-a">
+            <ellipse cy="-23" rx="12" ry="22"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(45)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(90)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(135)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(180)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(225)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(270)"/><ellipse cy="-23" rx="12" ry="22" transform="rotate(315)"/></g><g class="petal-b"><ellipse cy="-15" rx="8" ry="15" transform="rotate(22)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(67)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(112)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(157)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(202)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(247)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(292)"/><ellipse cy="-15" rx="8" ry="15" transform="rotate(337)"/></g><circle class="center" r="8"/><circle class="sparkle" cx="-2" cy="-3" r="2"/></svg>
+        </div>
+      </div>
+      <div class="heart-scene">
+        <svg class="heart-svg" viewBox="0 0 100 92">
+          <defs>
+            <linearGradient id="heartGradient" x1="15%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0" stop-color="#fff0f7"/>
+              <stop offset=".22" stop-color="#ff9fc6"/>
+              <stop offset=".55" stop-color="#ff4d91"/>
+              <stop offset="1" stop-color="#b71f68"/>
+            </linearGradient>
+            <radialGradient id="heartShine" cx="28%" cy="20%" r="70%">
+              <stop offset="0" stop-color="#fff" stop-opacity=".78"/>
+              <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <path class="heart-fill" d="M50 86 C42 78 7 53 5 30 C3 11 20 1 34 8 C43 12 48 20 50 25 C56 12 68 4 81 9 C98 16 98 34 89 49 C79 66 60 80 50 86Z" fill="url(#heartGradient)"/>
+          <path d="M50 86 C42 78 7 53 5 30 C3 11 20 1 34 8 C43 12 48 20 50 25 C56 12 68 4 81 9 C98 16 98 34 89 49 C79 66 60 80 50 86Z" fill="url(#heartShine)" opacity=".55"/>
+          <path class="heart-outline" pathLength="1" d="M50 86 C42 78 7 53 5 30 C3 11 20 1 34 8 C43 12 48 20 50 25 C56 12 68 4 81 9 C98 16 98 34 89 49 C79 66 60 80 50 86Z"/>
+          <path d="M20 20 C24 12 32 11 38 17" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <h1 class="love">Я тебя люблю</h1>
+  </div>
+  <p class="hint">Нажми на конверт</p>
+</main>
+<div class="particle-layer" id="particles" aria-hidden="true"></div>
+<script>
+(() => {
+  const stage = document.getElementById('stage');
+  const envelope = document.getElementById('envelope');
+  const particles = document.getElementById('particles');
+  let opened = false;
+  function sparkleBurst() {
+    const count = 24;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('i');
+      p.className = 'particle';
+      p.style.setProperty('--x', (38 + Math.random() * 24) + 'vw');
+      p.style.setProperty('--y', (30 + Math.random() * 30) + 'vh');
+      p.style.setProperty('--s', (3 + Math.random() * 5) + 'px');
+      p.style.setProperty('--dur', (1.2 + Math.random() * 1.2) + 's');
+      p.style.setProperty('--delay', (Math.random() * .7) + 's');
+      particles.appendChild(p);
+      setTimeout(() => p.remove(), 3200);
+    }
+  }
+  function openLetter() {
+    if (opened) return;
+    opened = true;
+    stage.classList.add('opened');
+    document.body.classList.add('opened-page');
+    envelope.setAttribute('aria-label', 'Письмо открыто');
+    sparkleBurst();
+  }
+  envelope.addEventListener('click', openLetter);
+  envelope.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openLetter();
+    }
+  });
+})();
+</script>
+</body>
+</html>
