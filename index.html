@@ -745,11 +745,11 @@ body.opened-page .memory-card { animation-play-state: running; }
 <div class="particle-layer" id="particles" aria-hidden="true"></div>
 <script>
 (() => {
-  const stage = document.getelementbyid('stage');
-  const envelope = document.getelementbyid('envelope');
-  const particles = document.getelementbyid('particles');
+  const stage = document.getElementById('stage');
+  const envelope = document.getElementById('envelope');
+  const particles = document.getElementById('particles');
   let opened = false;
-  function sparkleburst() {
+  function sparkleBurst() {
     const count = 24;
     for (let i = 0; i < count; i++) {
       const p = document.createElement('i');
@@ -773,9 +773,9 @@ body.opened-page .memory-card { animation-play-state: running; }
   }
   envelope.addEventListener('click', openLetter);
   envelope.addEventListener('keydown', event => {
-    if (event.key === 'enter' || event.key === ' ') {
-      event.preventdefault();
-      openletter();
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openLetter();
     }
   });
 })();
